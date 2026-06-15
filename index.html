@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style Rewinder - 3D Fashion Mixer</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Modular Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Initial Loader -->
+    <div id="loading-screen" class="bg-black">
+        <div class="relative w-20 h-20 mb-8">
+            <div class="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+            <div class="absolute inset-0 rounded-full border-4 border-t-white animate-spin"></div>
+        </div>
+        <h2 class="text-3xl font-black text-white" style="letter-spacing: 0.2em;">STYLE REWINDER</h2>
+        <p class="text-slate-500 mt-2" id="loading-text">데이터 로딩 중...</p>
+        <div id="debug-log" class="mt-8 text-[10px] font-mono text-slate-700 max-w-xs text-center"></div>
+    </div>
+
+    <!-- Top Styling Sets Carousel -->
+    <div id="top-carousel-wrapper">
+        <div class="flex flex-col items-center gap-3">
+            <div class="flex items-center gap-4">
+                <button class="carousel-nav-btn" onclick="scrollCarousel(-1)">❮</button>
+                <div class="carousel-view" id="style-carousel"></div>
+                <button class="carousel-nav-btn" onclick="scrollCarousel(1)">❯</button>
+            </div>
+            <!-- 페이지 인디케이터 도트 -->
+            <div id="carousel-dots" class="flex gap-2"></div>
+        </div>
+    </div>
+
+    <!-- Floating Messages & Hints -->
+    <div id="message-box"></div>
+    <div id="info-hint">눌러보세요!</div>
+
+    <!-- Brand UI -->
+    <div class="ui-overlay" onclick="showInstructions()" style="cursor: pointer;">
+        <h1 class="text-4xl font-black text-white mb-1" style="letter-spacing: 0.1em;">STYLE REWINDER</h1>
+    </div>
+
+    <!-- Management Panel (Right) -->
+    <div id="management-panel">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-black uppercase">Gallery & Sets</h2>
+            <button onclick="togglePanel()" class="text-slate-400 font-bold">×</button>
+        </div>
+        <div id="storage-status" class="mb-4 text-[9px] tracking-widest uppercase"></div>
+        <div class="mb-8 p-4 bg-slate-50 rounded-2xl">
+            <h3 class="text-xs font-black text-slate-400 mb-3 uppercase">Style Set Names</h3>
+            <div id="set-settings-list" class="space-y-2"></div>
+            <button onclick="addStyleSet()"
+                class="w-full mt-3 py-2 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400">+
+                Add New Set</button>
+        </div>
+        <div id="category-controls"></div>
+        <button class="w-full mt-6 btn btn-black animate-pulse" onclick="saveToShareableFile()">SHARE AS
+            (.html)</button>
+    </div>
+
+    <!-- AI Style Panel (Left) -->
+    <div id="ai-panel">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-black uppercase text-slate-900" style="letter-spacing: 0.1em;">STYLE REWINDER AI
+            </h2>
+            <button onclick="closeAIPanel()"
+                class="text-slate-400 font-bold hover:text-red-500 transition-colors">×</button>
+        </div>
+
+        <!-- 로딩 인디케이터 -->
+        <div id="ai-loading-indicator" class="py-12 flex flex-col items-center justify-center">
+            <div class="relative w-16 h-16 mb-6">
+                <div class="absolute inset-0 rounded-full border-4 border-slate-100"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-t-purple-600 animate-spin"></div>
+            </div>
+            <p class="text-xs font-black text-slate-400 tracking-widest uppercase mb-1">Analyzing Visuals...</p>
+            <p class="text-[10px] text-slate-300">화보 생성에는 약 20~30초가 소요됩니다.</p>
+        </div>
+
+        <!-- 생성된 결과 컨테이너 -->
+        <div id="ai-result-container" class="hidden flex-col items-center">
+            <div class="ai-card w-full shadow-2xl rounded-3xl overflow-hidden border border-slate-100">
+                <img id="ai-result-img" src="" alt="AI Fashion Illustration" class="w-full h-auto">
+                <div class="ai-info p-6 bg-white border-t border-slate-50">
+                    <span
+                        class="inline-block bg-purple-50 text-purple-600 text-[9px] font-black px-3 py-1 rounded-full mb-3 tracking-widest uppercase">Stylist
+                        Tip</span>
+                    <p id="ai-styling-tip" class="text-slate-500 text-[11px] leading-relaxed font-bold"></p>
+                </div>
+            </div>
+            <div class="flex gap-3 w-full mt-6">
+                <button class="flex-1 btn btn-black text-xs py-4" onclick="downloadAIResult()">DOWNLOAD</button>
+                <button class="flex-1 btn bg-slate-100 text-slate-400 text-xs py-4"
+                    onclick="closeAIPanel()">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help / Instruction Popup for Visitors -->
+    <div id="instruction-overlay">
+        <div class="instruction-card">
+            <h1 class="text-3xl font-black mb-6" style="letter-spacing: 0.1em; line-height: 1.4;">WELCOME TO<br>STYLE
+                REWINDER</h1>
+            <div class="space-y-6 text-left mb-10">
+                <div class="flex items-start gap-4">
+                    <div class="step-icon">01</div>
+                    <p class="text-sm leading-relaxed"><span class="font-black text-white">ROTATE :</span> 3D 실린더를 드래그하여
+                        자유롭게 아이템을 믹스매치 해보세요.</p>
+                </div>
+                <div class="flex items-start gap-4">
+                    <div class="step-icon">02</div>
+                    <p class="text-sm leading-relaxed"><span class="font-black text-white">STYLE SET :</span> 상단의 테마 버튼을
+                        클릭하면 준비된 컨셉의 코디가 즉시 완성됩니다.</p>
+                </div>
+            </div>
+            <button class="w-full btn btn-white py-5 font-black tracking-widest" onclick="closeInstructions()">START
+                EXPERIENCE</button>
+        </div>
+    </div>
+
+    <!-- Item Info Popup (Center) -->
+    <div id="info-popup">
+        <div class="info-card">
+            <button class="close-info" onclick="closeInfoPopup()">×</button>
+            <div class="info-visual">
+                <a id="info-img-link" href="#" target="_blank" class="popup-image-container">
+                    <img id="info-img" src="" alt="Selected Item">
+                    <div id="info-buy-overlay" class="buy-overlay">
+                        <span>구매하기</span>
+                    </div>
+                </a>
+            </div>
+            <div class="info-body">
+                <span id="info-category" class="info-tag">CATEGORY</span>
+                <h2 id="info-title">ITEM NAME</h2>
+                <p id="info-desc">여기에 옷에 대한 당신만의 이야기를 담아보세요.</p>
+                <a id="info-link" href="#" target="_blank" class="mt-6 inline-block bg-slate-900 text-white text-[10px] font-black px-6 py-3 rounded-xl tracking-widest uppercase hover:bg-blue-600 transition-colors">View Link</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main 3D Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Control Bar -->
+    <div class="controls">
+        <button class="btn" onclick="showSetReference()">STYLE</button>
+        <button class="btn btn-ai" id="ai-style-btn" onclick="generateAIStyle(event)">AI STYLE</button>
+        <div id="management-btn-wrapper">
+            <button class="btn btn-black" onclick="togglePanel()">GALLERY</button>
+        </div>
+        <button class="btn" onclick="randomize()">SHUFFLE</button>
+    </div>
+
+    <!-- Core Logics -->
+    <script src="script.js"></script>
+</body>
+
+</html>
